@@ -23,7 +23,7 @@
       <h1 class="serif text-2xl font-bold text-stone-900 leading-none">Fake Wedding</h1>
     </div>
     <button type="button" onclick="openQrModal()" class="flex items-center gap-1.5 text-xs font-semibold bg-stone-900 text-white px-3.5 py-2 rounded-full shadow-sm active:scale-95 transition">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 00-1 1v2a1 1 001 1z"></path></svg>
       Event QR
     </button>
   </header>
@@ -32,7 +32,7 @@
     <div>
       <div class="text-center mb-6">
         <p class="serif italic text-3xl text-stone-800 mb-1">Capture the Chaos</p>
-        <p class="text-sm text-stone-500">Snap a live photo or pick photos & short clips from your gallery.</p>
+        <p class="text-sm text-stone-500">Snap a live photo or pick photos & videos (up to 1 min) from your gallery.</p>
       </div>
 
       <div class="mb-4">
@@ -203,10 +203,10 @@
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          const ext = file.name.split('.').pop() || 'bin';
+          const ext = file.name.split('.').pop() || 'mp4';
           resolve({
             base64: reader.result.split(',')[1],
-            mimeType: file.type || 'application/octet-stream',
+            mimeType: file.type || 'video/mp4',
             ext: ext
           });
         };
@@ -215,15 +215,22 @@
       });
     }
 
-    function postPayload(payloadString) {
+    function postPayload(payloadString, isVideo) {
       return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', SCRIPT_URL, true);
         xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
-        xhr.timeout = 17000;
+        xhr.timeout = isVideo ? 45000 : 17000;
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && e.loaded === e.total && isVideo) {
+            // Appena tutti i byte sono stati inviati a Google, diamo 2.5s al server per salvare e chiudiamo
+            setTimeout(() => resolve(true), 2500);
+          }
+        };
 
         xhr.onload = () => resolve(true);
-        xhr.onerror = () => resolve(true); // Google Apps Script 302 redirect triggers onerror on XHR after receiving payload
+        xhr.onerror = () => resolve(true);
         xhr.ontimeout = () => reject(new Error('Timeout'));
 
         xhr.send(payloadString);
@@ -247,7 +254,7 @@
         const file = selectedFiles[i];
         const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|3gp|webm)$/i.test(file.name);
 
-        if (file.size > 22 * 1024 * 1024 && isVideo) {
+        if (isVideo && file.size > 45 * 1024 * 1024) {
           tooLargeCount++;
           continue;
         }
@@ -262,7 +269,7 @@
             filename: filename,
             mimeType: payload.mimeType,
             base64: payload.base64
-          }));
+          }), isVideo);
 
           successCount++;
         } catch (err) {
@@ -278,14 +285,14 @@
         selectedFiles = [];
         renderPreviews();
       } else if (successCount > 0 && tooLargeCount > 0) {
-        showStatus(`${successCount} uploaded. ${tooLargeCount} video skipped (max 20MB per clip).`, 'bg-amber-100 text-amber-900');
+        showStatus(`${successCount} uploaded. ${tooLargeCount} video skipped (max 45MB / ~1 min).`, 'bg-amber-100 text-amber-900');
         selectedFiles = [];
         renderPreviews();
       } else if (tooLargeCount > 0) {
-        showStatus(`Video too heavy (max 20MB / ~12 sec). Try a shorter clip!`, 'bg-red-100 text-red-900');
+        showStatus(`Video too heavy (max 45MB / ~1 min).`, 'bg-red-100 text-red-900');
         btn.disabled = false;
       } else {
-        showStatus(`Stopped after 17s. Check connection and tap Send again.`, 'bg-red-100 text-red-900');
+        showStatus(`Upload timed out. Check connection and tap Send again.`, 'bg-red-100 text-red-900');
         btn.disabled = false;
       }
     }
