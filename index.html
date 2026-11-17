@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fake Wedding — Photo Drop</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>Fake Wedding — Photo & Video Drop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,7 +32,7 @@
     <div>
       <div class="text-center mb-6">
         <p class="serif italic text-3xl text-stone-800 mb-1">Capture the Chaos</p>
-        <p class="text-sm text-stone-500">Snap a live photo or pick from your gallery. Everything goes straight to the wedding album.</p>
+        <p class="text-sm text-stone-500">Snap live photos, record short clips, or upload directly from your gallery in original quality.</p>
       </div>
 
       <div class="mb-4">
@@ -40,23 +43,23 @@
       <div class="grid grid-cols-2 gap-3 mb-5">
         <label class="cursor-pointer flex flex-col items-center justify-center gap-2 bg-stone-900 text-white p-4 rounded-2xl shadow-md active:scale-95 transition">
           <svg class="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          <span class="text-xs font-semibold">Take a Photo</span>
-          <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleFiles(this.files)" />
+          <span class="text-xs font-semibold">Take Photo / Video</span>
+          <input type="file" accept="image/*,video/*" capture="environment" class="hidden" onchange="handleFiles(this.files)" />
         </label>
 
         <label class="cursor-pointer flex flex-col items-center justify-center gap-2 bg-white text-stone-900 border border-stone-200 p-4 rounded-2xl shadow-sm active:scale-95 transition">
           <svg class="w-6 h-6 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
           <span class="text-xs font-semibold">From Gallery</span>
-          <input type="file" accept="image/*" multiple class="hidden" onchange="handleFiles(this.files)" />
+          <input type="file" accept="image/*,video/*" multiple class="hidden" onchange="handleFiles(this.files)" />
         </label>
       </div>
 
       <div id="previewContainer" class="hidden mb-5">
         <div class="flex items-center justify-between mb-2">
-          <span id="photoCount" class="text-xs font-semibold text-stone-600">0 photos selected</span>
+          <span id="photoCount" class="text-xs font-semibold text-stone-600">0 files selected</span>
           <button onclick="clearPhotos()" class="text-xs text-red-600 font-medium">Clear all</button>
         </div>
-        <div id="previewGrid" class="grid grid-cols-3 gap-2"></div>
+        <div id="previewGrid" class="space-y-1.5"></div>
       </div>
 
       <div id="statusBox" class="hidden mb-4 p-3.5 rounded-xl text-xs font-medium text-center"></div>
@@ -69,8 +72,8 @@
 
   <div id="qrModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-5">
     <div class="bg-white rounded-3xl max-w-xs w-full p-6 text-center shadow-2xl">
-      <h3 class="serif text-2xl font-bold text-stone-900 mb-1">Scan to Share Photos</h3>
-      <p class="text-xs text-stone-500 mb-4">Print or show this QR code at the venue</p>
+      <h3 class="serif text-2xl font-bold text-stone-900 mb-1">Scan to Share</h3>
+      <p class="text-xs text-stone-500 mb-4">Print or show this QR code at Kasernen</p>
       <div id="qrcode" class="flex justify-center p-3 bg-stone-50 rounded-2xl mb-4 border border-stone-100"></div>
       <div class="flex gap-2">
         <button onclick="downloadQR()" class="flex-1 py-2.5 bg-stone-900 text-white text-xs font-semibold rounded-xl">Download PNG</button>
@@ -84,8 +87,7 @@
     let selectedFiles = [];
 
     function handleFiles(fileList) {
-      const files = Array.from(fileList);
-      selectedFiles = [...selectedFiles, ...files];
+      selectedFiles = [...selectedFiles, ...Array.from(fileList)];
       renderPreviews();
     }
 
@@ -93,6 +95,14 @@
       selectedFiles = [];
       renderPreviews();
       hideStatus();
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
     function renderPreviews() {
@@ -110,15 +120,20 @@
 
       container.classList.remove('hidden');
       btn.disabled = false;
-      count.textContent = `${selectedFiles.length} photo${selectedFiles.length > 1 ? 's' : ''} ready`;
+      count.textContent = `${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''} ready`;
 
       selectedFiles.forEach((file, index) => {
-        const url = URL.createObjectURL(file);
+        const isVideo = file.type.startsWith('video/');
+        const badge = isVideo ? 'VIDEO' : 'PHOTO';
         const div = document.createElement('div');
-        div.className = 'relative aspect-square rounded-xl overflow-hidden bg-stone-200 border border-stone-300';
+        div.className = 'flex items-center justify-between px-3 py-2.5 bg-white rounded-xl border border-stone-200 text-xs';
         div.innerHTML = `
-          <img src="${url}" class="w-full h-full object-cover" />
-          <button onclick="removePhoto(${index})" class="absolute top-1 right-1 w-5 h-5 bg-black/70 text-white rounded-full text-xs flex items-center justify-center">×</button>
+          <div class="flex items-center gap-2 truncate pr-2">
+            <span class="px-1.5 py-0.5 text-[10px] font-bold rounded ${isVideo ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-700'}">${badge}</span>
+            <span class="truncate text-stone-800 font-medium">${file.name}</span>
+            <span class="text-stone-400 shrink-0">(${formatBytes(file.size)})</span>
+          </div>
+          <button onclick="removePhoto(${index})" class="text-red-600 font-bold text-sm px-1">×</button>
         `;
         grid.appendChild(div);
       });
@@ -129,30 +144,12 @@
       renderPreviews();
     }
 
-    function compressImage(file) {
-      return new Promise((resolve) => {
-        const url = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1280;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
-          URL.revokeObjectURL(url);
-          resolve(dataUrl.split(',')[1]);
-        };
-        img.src = url;
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
     }
 
@@ -166,10 +163,13 @@
       let successCount = 0;
 
       for (let i = 0; i < selectedFiles.length; i++) {
-        btn.textContent = `Sending ${i + 1} of ${selectedFiles.length}...`;
+        const file = selectedFiles[i];
+        btn.textContent = `Uploading ${i + 1} of ${selectedFiles.length} (${formatBytes(file.size)})...`;
+        
         try {
-          const base64Data = await compressImage(selectedFiles[i]);
-          const filename = `${guest}_${Date.now()}_${i + 1}.jpg`;
+          const base64Data = await fileToBase64(file);
+          const ext = file.name.split('.').pop() || (file.type.startsWith('video/') ? 'mp4' : 'jpg');
+          const filename = `${guest}_${Date.now()}_${i + 1}.${ext}`;
 
           await fetch(SCRIPT_URL, {
             method: 'POST',
@@ -177,7 +177,7 @@
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
               filename: filename,
-              mimeType: 'image/jpeg',
+              mimeType: file.type || 'application/octet-stream',
               base64: base64Data
             })
           });
@@ -189,11 +189,11 @@
       }
 
       if (successCount > 0) {
-        showStatus(`Sent! ${successCount} photo${successCount > 1 ? 's' : ''} uploaded to the album.`, 'bg-emerald-100 text-emerald-900');
+        showStatus(`Done! ${successCount} file${successCount > 1 ? 's' : ''} uploaded to the album.`, 'bg-emerald-100 text-emerald-900');
         selectedFiles = [];
         renderPreviews();
       } else {
-        showStatus(`Connection error. Please try again.`, 'bg-red-100 text-red-900');
+        showStatus(`Error uploading. Try shorter videos or check connection.`, 'bg-red-100 text-red-900');
         btn.disabled = false;
       }
       btn.textContent = 'Send to Wedding Album';
